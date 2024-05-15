@@ -132,12 +132,14 @@ Token getNextToken(FILE *fp)
         {
             buffer[i++] = c;                // Buffer'a karakteri ekle
         }
+        
         if (i == MAX_IDENTIFIER_SIZE && (isalnum(c) || c == '_')) {
             printf("Error: Identifier too long.\n");   // Hata mesajı
             exit(-1);                       // Programı sonlandır
         }
         buffer[i] = '\0';                   // Buffer'ın sonuna null karakter ekle
         fseek(fp, -1, SEEK_CUR);            // Dosya imlecinin bir karakter geri al
+
         /* Tanımlanan anahtar kelimeleri kontrol et */
         if (strcmp(buffer, "int") == 0 || strcmp(buffer, "text") == 0 ||
             strcmp(buffer, "is") == 0 || strcmp(buffer, "loop") == 0 ||
@@ -287,6 +289,6 @@ void printToken(Token token)
         fprintf(outputFile, "Error: Unknown token type\n");  // Bilinmeyen token türü hatası
         break;
     }
-
-    fclose(outputFile);  // Çıktı dosyasını kapat
+    
+        fclose(outputFile);  // Çıktı dosyasını kapat
 }
