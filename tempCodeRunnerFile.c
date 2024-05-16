@@ -1,4 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
+// Dosyanın sonuna ulaşıldığında, son satırı işle
+        if (feof(file)) {
+            execute(fullLine);
+            break;
+        }
