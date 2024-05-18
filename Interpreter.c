@@ -32,25 +32,43 @@ Variable* getVariable(const char* name) {
     return NULL;
 }
 
-void declareVariable(const char* name, VarType type) {
+void declareVariable(const char* name, VarType type, const char* value) {
     if (varCount >= MAX_VAR_COUNT) {
         printf("Error: Too many variables declared.\n");
         exit(1);
     }
+
     strcpy(variables[varCount].name, name);
     variables[varCount].type = type;
+
     if (type == INT) {
-        variables[varCount].intValue = 0;
+        if (value != NULL) {
+            int intValue;
+            sscanf(value, "IntConst(%d)", &intValue);
+            variables[varCount].intValue = intValue;
+        } else {
+            variables[varCount].intValue = 0;
+        }
+        printf("Declared variable: %s of type INT with value %d\n", name, variables[varCount].intValue);
     } else {
-        variables[varCount].strValue[0] = '\0';
+        if (value != NULL) {
+            char buffer[MAX_STR_LEN];
+            sscanf(value, "String(\"%255[^\"]\")", buffer);
+            strcpy(variables[varCount].strValue, buffer);
+        } else {
+            variables[varCount].strValue[0] = '\0';
+        }
+        printf("Declared variable: %s of type TEXT with value \"%s\"\n", name, variables[varCount].strValue);
     }
-    printf("Declared variable: %s of type %s\n", name, type == INT ? "INT" : "TEXT");
+
     varCount++;
 }
 
 void handleDeclaration(const char* line) {
     char* token = strtok((char*)line, " ,.");
     VarType type;
+
+    // Determine the type of the variables
     if (strcmp(token, "Keyword(int)") == 0) {
         type = INT;
     } else if (strcmp(token, "Keyword(text)") == 0) {
@@ -60,19 +78,66 @@ void handleDeclaration(const char* line) {
         return;
     }
 
-    token = strtok(NULL, " ,.");
-    while (token != NULL) {
+    // Process each variable declaration
+    while ((token = strtok(NULL, " ,.")) != NULL) {
         if (strncmp(token, "Identifier(", 11) == 0) {
             char varName[32];
             sscanf(token, "Identifier(%31[^)])", varName);
-            declareVariable(varName, type);
-        }
-        token = strtok(NULL, " ,.");
-        if (token != NULL && strcmp(token, "Comma") == 0) {
+
+            char* value = NULL;
             token = strtok(NULL, " ,.");
+            if (token != NULL && strcmp(token, "Keyword(is)") == 0) {
+                token = strtok(NULL, " ,.");
+                if (token != NULL && (strncmp(token, "IntConst(", 9) == 0 || strncmp(token, "String(", 7) == 0)) {
+                    if (strncmp(token, "String(", 7) == 0) {
+                        // Allocate enough space for the entire string
+                        size_t valueLen = strlen(token);
+                        value = (char*)malloc(valueLen + 1);
+                        strcpy(value, token);
+
+                        char* endQuote = strstr(token, "\")");
+                        while (endQuote == NULL) {
+                            token = strtok(NULL, " ,");
+                            if (token == NULL) {
+                                printf("Error: Unterminated string.\n");
+                                free(value);
+                                return;
+                            }
+                            valueLen += strlen(token) + 1;
+                            value = (char*)realloc(value, valueLen + 1);
+                            strcat(value, " ");
+                            strcat(value, token);
+                            endQuote = strstr(token, "\")");
+                        }
+
+                        // Null-terminate the final string
+                        value[valueLen] = '\0';
+                    } else {
+                        value = (char*)malloc(strlen(token) + 1);
+                        strcpy(value, token);
+                    }
+
+                    token = strtok(NULL, " ,."); // Move to the next token
+                } else {
+                    printf("Error: Invalid assignment for variable %s.\n", varName);
+                    return;
+                }
+            }
+
+            // Declare the variable with or without an initial value
+            declareVariable(varName, type, value);
+
+            if (value) {
+                free(value);
+            }
+        }
+
+        if (token == NULL || strcmp(token, "Comma") != 0) {
+            break;
         }
     }
 }
+
 
 void handleAssignment(const char* varName, const char* expression) {
     Variable* var = getVariable(varName);
