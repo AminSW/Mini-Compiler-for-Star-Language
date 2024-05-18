@@ -21,20 +21,18 @@ typedef struct {
 Variable variables[MAX_VAR_COUNT];
 int varCount = 0;
 
+void execute(const char* line);
+
 Variable* getVariable(const char* name) {
-    printf("Searching for variable: %s\n", name);
     for (int i = 0; i < varCount; i++) {
-        if (strcmp(variables[i].name, name) == 0 || strcmp(variables[i].name + 11, name) == 0) { // Dönüşüm
-            printf("Variable found: %s\n", name);
+        if (strcmp(variables[i].name, name) == 0) {
             return &variables[i];
         }
     }
-    printf("Variable not found: %s\n", name);
     return NULL;
 }
 
 void declareVariable(const char* name, VarType type) {
-    printf("Declaring variable: %s of type: %s\n", name, type == INT ? "INT" : "TEXT");
     if (varCount >= MAX_VAR_COUNT) {
         printf("Error: Too many variables declared.\n");
         exit(1);
@@ -46,13 +44,22 @@ void declareVariable(const char* name, VarType type) {
     } else {
         variables[varCount].strValue[0] = '\0';
     }
+    printf("Declared variable: %s of type %s\n", name, type == INT ? "INT" : "TEXT");
     varCount++;
 }
 
 void handleDeclaration(const char* line) {
-    printf("Handling declaration: %s\n", line);
     char* token = strtok((char*)line, " ,.");
-    VarType type = strcmp(token, "Keyword(int)") == 0 ? INT : TEXT;
+    VarType type;
+    if (strcmp(token, "Keyword(int)") == 0) {
+        type = INT;
+    } else if (strcmp(token, "Keyword(text)") == 0) {
+        type = TEXT;
+    } else {
+        printf("Error: Unrecognized type keyword %s.\n", token);
+        return;
+    }
+
     token = strtok(NULL, " ,.");
     while (token != NULL) {
         if (strncmp(token, "Identifier(", 11) == 0) {
@@ -61,20 +68,32 @@ void handleDeclaration(const char* line) {
             declareVariable(varName, type);
         }
         token = strtok(NULL, " ,.");
-        // Comma olduğunda bir sonraki tokena geç
         if (token != NULL && strcmp(token, "Comma") == 0) {
             token = strtok(NULL, " ,.");
         }
     }
 }
 
-
-// handleAssignment() fonksiyonunda düzeltme
 void handleAssignment(const char* varName, const char* expression) {
     Variable* var = getVariable(varName);
     if (var == NULL) {
-        printf("Error: Undeclared variable %s.\n", varName);
-        return;
+        // Yeni bir değişken oluştur
+        if (varCount >= MAX_VAR_COUNT) {
+            printf("Error: Too many variables declared.\n");
+            exit(1);
+        }
+        strcpy(variables[varCount].name, varName);
+
+        // String içerip içermediğini kontrol et
+        if (strstr(expression, "String(") != NULL) {
+            variables[varCount].type = TEXT;
+            var = &variables[varCount];
+            varCount++;
+        } else {
+            variables[varCount].type = INT;
+            var = &variables[varCount];
+            varCount++;
+        }
     }
 
     if (var->type == INT) {
@@ -82,22 +101,23 @@ void handleAssignment(const char* varName, const char* expression) {
         char* exprCopy = strdup(expression);
         char* token = strtok(exprCopy, " ");
         while (token != NULL) {
-            if (isdigit(token[0]) || (token[0] == '-' && isdigit(token[1]))) {
-                int num = atoi(token);
+            if (strncmp(token, "IntConst(", 9) == 0) {
+                int num;
+                sscanf(token, "IntConst(%d)", &num);
                 result += num;
             } else if (strncmp(token, "Identifier(", 11) == 0) {
-                char varName[32];
-                sscanf(token, "Identifier(%31[^)])", varName);
-                Variable* other = getVariable(varName);
+                char otherVarName[32];
+                sscanf(token, "Identifier(%31[^)])", otherVarName);
+                Variable* other = getVariable(otherVarName);
                 if (other != NULL && other->type == INT) {
                     result += other->intValue;
                 } else {
-                    printf("Error: Invalid integer assignment.\n");
+                    printf("Error: Invalid integer assignment for %s.\n", otherVarName);
                     free(exprCopy);
                     return;
                 }
             } else if (strcmp(token, "Operator(/)") == 0) {
-                token = strtok(NULL, " "); // Skip Operator(/)
+                token = strtok(NULL, " ");
                 if (token != NULL && strncmp(token, "IntConst(", 9) == 0) {
                     int divisor;
                     sscanf(token, "IntConst(%d)", &divisor);
@@ -113,23 +133,37 @@ void handleAssignment(const char* varName, const char* expression) {
                     free(exprCopy);
                     return;
                 }
+            } else if (strcmp(token, "Operator(+)") == 0) {
+                // Do nothing, just move to the next token
+            } else {
+                printf("Error: Unexpected token %s.\n", token);
+                free(exprCopy);
+                return;
             }
             token = strtok(NULL, " ");
-
-            // Ifade işleme sonunda bir sonraki tokenın NULL olup olmadığını kontrol et
-            if (token == NULL) {
-                var->intValue = result < 0 ? 0 : (result > MAX_INT ? MAX_INT : result);
-            }
         }
+        var->intValue = result < 0 ? 0 : (result > MAX_INT ? MAX_INT : result);
+        printf("Handle Assignment : Int blog ***** \n Assigned %d to variable %s\n", var->intValue, varName);
         free(exprCopy);
+    } else if (var->type == TEXT) {
+        // Handle assignment to TEXT variable
+        char* strStart = strstr(expression, "String(") + strlen("String(");
+        if (strStart != NULL) {
+            char* strEnd = strstr(strStart, ")");
+            if (strEnd != NULL) {
+                strncpy(var->strValue, strStart + 1, strEnd - strStart - 2); // -2 to remove the surrounding quotes
+                var->strValue[strEnd - strStart - 2] = '\0'; // Null-terminate the string
+                printf("Assigned \"%s\" to variable %s\n", var->strValue, varName);
+            } else {
+                printf("Error: Invalid string assignment.\n");
+            }
+        } else {
+            printf("Error: Invalid string assignment.\n");
+        }
     }
 }
 
-// getVariable() fonksiyonunda düzeltme
-
-
 void handleIO(const char* command, const char* line) {
-    printf("Handling IO: %s with %s\n", command, line);
     if (strcmp(command, "Keyword(write)") == 0) {
         char* token = strtok((char*)line, " ,.");
         while (token != NULL) {
@@ -173,27 +207,96 @@ void handleIO(const char* command, const char* line) {
     }
 }
 
+void handleLoop(int loopCount, const char* loopBody) {
+        for (int i = 0; i < loopCount; i++) {
+            printf("Loop iteration %d:\n", i + 1);
+
+            char loopBodyCopy[4096];
+            strcpy(loopBodyCopy, loopBody);
+
+            char* token = strtok(loopBodyCopy, " ");
+            char statement[1024] = {0};
+            int inStatement = 0;
+
+            while (token != NULL) {
+                if (inStatement == 0 && strncmp(token, "Keyword", 7) == 0) {
+                    inStatement = 1;
+                    strcat(statement, token);
+                    strcat(statement, " ");
+                } else if (inStatement) {
+                    strcat(statement, token);
+                    strcat(statement, " ");
+                    if (strcmp(token, "EndOfLine") == 0) {
+                        execute(statement);
+                        statement[0] = '\0';
+                        inStatement = 0;
+                    }
+                }
+                token = strtok(NULL, " ");
+            }
+            if (inStatement) {
+                execute(statement);
+        
+            // Her iterasyon sonunda Identifier(i) değerini 1 artır
+            Variable *var = getVariable("i");
+            if (var != NULL) {
+                var->intValue++;
+            } else {
+                printf("Error: Variable 'i' is not declared.\n");
+            }
+        }
+    }
+}
+
+
+void handleIsStatement(const char* line) {
+    char varName[32], expression[256];
+    sscanf(line, " Identifier(%31[^)]) Operator(is) %255[^\n]", varName, expression);
+    handleAssignment(varName, expression);
+}
+
+
 void execute(const char* line) {
-    printf("Executing line: %s\n", line);
+    printf("Line: %s\n", line);
 
     if (strncmp(line, "Keyword(write)", 14) == 0) {
-        handleIO("Keyword(write)", line + 14); // 'write' komutunu ayır
+        handleIO("Keyword(write)", line + 14);
     } else if (strncmp(line, "Keyword(int)", 12) == 0) {
+        handleDeclaration(line);
+    } else if (strncmp(line, "Keyword(text)", 13) == 0) {
         handleDeclaration(line);
     } else if (strncmp(line, "Keyword(read)", 13) == 0) {
         char command[32], rest[256];
         sscanf(line, "%31s %255[^\n]", command, rest);
         handleIO(command, rest);
     } else if (strncmp(line, "Keyword(newLine)", 16) == 0) {
-        handleIO("Keyword(newLine)", NULL); // 'newLine' komutu
+        handleIO("Keyword(newLine)", NULL);
+    } else if (strncmp(line, "Keyword(loop)", 13) == 0) {
+        int loopCount;
+        const char* loopCountStart = strstr(line, "IntConst(") + strlen("IntConst(");
+        sscanf(loopCountStart, "%d", &loopCount);
+
+        const char* loopBodyStart = strstr(line, "LeftCurlyBracket") + strlen("LeftCurlyBracket");
+        const char* loopBodyEnd = strstr(line, "RightCurlyBracket");
+        if (loopBodyEnd != NULL) {
+            char loopBody[4096];
+            strncpy(loopBody, loopBodyStart, loopBodyEnd - loopBodyStart);
+            loopBody[loopBodyEnd - loopBodyStart] = '\0';
+
+            handleLoop(loopCount, loopBody);
+        } else {
+            printf("Error: Missing RightCurlyBracket in loop.\n");
+        }
+    } else if (strncmp(line, "Keyword(is)", 11) == 0) {
+        handleIsStatement(line + 11);
     } else if (strstr(line, "Keyword(is)") != NULL) {
         char varName[32], expression[256];
         sscanf(line, "Identifier(%31[^)]) Keyword(is) %255[^\n]", varName, expression);
         handleAssignment(varName, expression);
+    } else {
+        printf("Error: Unrecognized keyword.\n");
     }
 }
-
-
 
 
 
@@ -217,23 +320,47 @@ int main() {
         return 1;
     }
 
-    char line[1024];
-    char fullLine[1024] = {0};
-    
-    // Dosyadan satır oku ve dosyanın sonuna ulaşılıncaya kadar döngüyü çalıştır
-    while (fgets(line, sizeof(line), file)) {
-        removeComments(line);
-        strcat(fullLine, line);
-        // Satırın sonunda satır sonu karakteri yoksa, okumaya devam et
-        if (line[strlen(line) - 1] != '\n') {
-            continue;
+    char token[256];
+    char line[1024] = {0};
+    int inLoop = 0;
+    char loopBody[4096] = {0};
+
+    while (fgets(token, sizeof(token), file)) {
+        removeComments(token);
+        strtok(token, "\n");
+        if (strlen(token) == 0) continue;
+
+        if (strncmp(token, "Keyword(loop)", 13) == 0) {
+            inLoop = 1;
+            strcat(line, token);
+        } else if (inLoop) {
+            strcat(loopBody, " ");
+            strcat(loopBody, token);
+            if (strstr(token, "RightCurlyBracket") != NULL) {
+                inLoop = 0;
+                strcat(line, " ");
+                strcat(line, loopBody);
+                execute(line);
+                line[0] = '\0';
+                loopBody[0] = '\0';
+            }
+        } else {
+            if (strcmp(token, "EndOfLine") == 0) {
+                if (strlen(line) > 0) {
+                    execute(line);
+                    line[0] = '\0';
+                }
+            } else {
+                if (strlen(line) > 0) strcat(line, " ");
+                strcat(line, token);
+            }
         }
-        execute(fullLine);
-        fullLine[0] = '\0';
+    }
+
+    if (strlen(line) > 0) {
+        execute(line);
     }
 
     fclose(file);
     return 0;
 }
-
-
