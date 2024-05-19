@@ -6,3 +6,17 @@ newLine.
 c is a+b.
 c is c/2.
 write "Result:" c.
+text s is "Ohh ice ice baby!".
+text s2.
+s2 is s- "ice".
+text Str1 is "like home." , Str2.
+Str2 is "There is no place" + Str1.
+write Str1. 
+int i.
+i is 1.
+loop 10 times
+{ write i.  newLine.
+   i is i+1.
+}
+
+

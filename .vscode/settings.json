@@ -2,6 +2,8 @@
     "C_Cpp.errorSquiggles": "disabled",
     "files.associations": {
         "stdio.h": "c",
-        "stdlib.h": "c"
-    }
+        "stdlib.h": "c",
+        "ctype.h": "c"
+    },
+    "CodeGPT.apiKey": "CodeGPT Plus Beta"
 }
