@@ -32,6 +32,29 @@ Variable* getVariable(const char* name) {
     return NULL;
 }
 
+char* concatStrings(const char* str1, const char* str2) {
+    size_t len1 = strlen(str1);
+    size_t len2 = strlen(str2);
+    char* result = (char*)malloc(len1 + len2 + 1); // +1 for the null-terminator
+    strcpy(result, str1);
+    strcat(result, str2);
+    return result;
+}
+
+char* subtractStrings(const char* str, const char* sub) {
+    char* pos = strstr(str, sub);
+    if (!pos) return strdup(str); // sub not found in str
+
+    size_t len = strlen(str) - strlen(sub);
+    char* result = (char*)malloc(len + 1); // +1 for the null-terminator
+
+    strncpy(result, str, pos - str); // copy part before sub
+    result[pos - str] = '\0';   
+    strcat(result, pos + strlen(sub)); // copy part after sub
+
+    return result;
+}
+
 void declareVariable(const char* name, VarType type, const char* value) {
     if (varCount >= MAX_VAR_COUNT) {
         printf("Error: Too many variables declared.\n");
@@ -208,23 +231,78 @@ void handleAssignment(const char* varName, const char* expression) {
             token = strtok(NULL, " ");
         }
         var->intValue = result < 0 ? 0 : (result > MAX_INT ? MAX_INT : result);
-        printf("Handle Assignment : Int blog ***** \n Assigned %d to variable %s\n", var->intValue, varName);
+        printf("Assigned %d to variable %s\n", var->intValue, varName);
         free(exprCopy);
     } else if (var->type == TEXT) {
         // Handle assignment to TEXT variable
-        char* strStart = strstr(expression, "String(") + strlen("String(");
-        if (strStart != NULL) {
-            char* strEnd = strstr(strStart, ")");
-            if (strEnd != NULL) {
-                strncpy(var->strValue, strStart + 1, strEnd - strStart - 2); // -2 to remove the surrounding quotes
-                var->strValue[strEnd - strStart - 2] = '\0'; // Null-terminate the string
-                printf("Assigned \"%s\" to variable %s\n", var->strValue, varName);
+        char result[MAX_STR_LEN] = ""; // Sonuç string'i başlat
+        char* exprCopy = strdup(expression); // İfadeyi kopyala
+        char* token = strtok(exprCopy, " "); // İfadeyi token'lara ayır
+
+        while (token != NULL) { // Tüm token'ları işleyene kadar devam et
+            if (strcmp(token, "Keyword(is)") == 0) {
+                // 'is' keywordünü atla ve bir sonraki token'a geç
+                token = strtok(NULL, " ");
+                continue;
+            } else if (strncmp(token, "String(", 7) == 0) {
+                char str[MAX_STR_LEN] = "";
+                // String'in tamamını al
+                size_t len = strlen(token);
+                if (token[len - 1] != ')') {
+                    // Eğer token ')' ile bitmiyorsa, devamındaki token'ları birleştir
+                    strcat(str, token + 7); // "String(" kısmını atla
+                    while ((token = strtok(NULL, " ")) != NULL) {
+                        len = strlen(token);
+                        strcat(str, " ");
+                        strcat(str, token);
+                        if (token[len - 1] == ')') {
+                            str[strlen(str) - 1] = '\0'; // Kapanış parantezini kaldır
+                            break;
+                        }
+                    }
+                } else {
+                    // Eğer token ')' ile bitiyorsa, sadece string içeriğini al
+                    sscanf(token, "String(\"%255[^\"]", str); // String değerini al
+                }
+
+                // Son string'deki " karakterlerini kaldır
+                char tempStr[MAX_STR_LEN] = "";
+                char* p = str;
+                char* q = tempStr;
+                while (*p) {
+                    if (*p != '\"') {
+                        *q++ = *p;
+                    }
+                    p++;
+                }
+                *q = '\0';
+
+                strcat(result, tempStr); // Sonuca ekle
+            } else if (strncmp(token, "Identifier(", 11) == 0) {
+                char otherVarName[32];
+                sscanf(token, "Identifier(%31[^)])", otherVarName); // Diğer değişken ismini al
+                Variable* other = getVariable(otherVarName); // Diğer değişkeni getir
+                if (other != NULL && other->type == TEXT) {
+                    strcat(result, other->strValue); // Diğer değişkenin değerini sonuca ekle
+                } else {
+                    printf("Error: Invalid text assignment for %s.\n", otherVarName);
+                    free(exprCopy); // Hatalı durumda belleği temizle ve çık
+                    return;
+                }
+            } else if (strcmp(token, "Operator(+)") == 0) {
+                // Operatör + ise bir şey yapma, bir sonraki token'a geç
             } else {
-                printf("Error: Invalid string assignment.\n");
+                printf("Error: Unexpected token %s.\n", token);
+                free(exprCopy); // Beklenmeyen token durumunda çık
+                return;
             }
-        } else {
-            printf("Error: Invalid string assignment.\n");
+            token = strtok(NULL, " "); // Bir sonraki token'a geç
         }
+        strcpy(var->strValue, result); // Sonucu değişkene ata
+        printf("Assigned \"%s\" to variable %s\n", var->strValue, varName);
+        free(exprCopy); // Belleği temizle
+    } else {
+        printf("Error: Unsupported variable type for %s.\n", varName);
     }
 }
 
