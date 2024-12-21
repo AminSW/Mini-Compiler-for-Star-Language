@@ -1,22 +1,84 @@
-int a,b,c.
-read "First:" a.
+/* =================== Variables and Declarations: ===================*/
+
+int myInt.
+text myString.
+int a,b,c,d.
+
+int count is 5.
+text errMsg is "An error has just occurred:".
+int m is 1, n is 2.    /* is possible */
 newLine.
-read "Second:" b.
+
+
+/* =================== Assignments: =================== */
+
+myString is "Hello world".   /* This is an assignment */
+
+myInt is myInt +1.  /* Can be used in order to increment myInt */
+myInt is 1 - 3 .  /* This will assign value 0 to myInt*/
 newLine.
-c is a+b.
-c is c/2.
-write "Result:" c.
-text s is "Ohh ice ice baby!".
-text s2.
-s2 is s- "ice".
-text Str1 is "like home." , Str2.
-Str2 is "There is no place" + Str1.
-write Str1. 
+
+
+/* =================== Comments =================== */
+
+/* =================== Lines of Code =================== */
+
+text myString  /* This line can be divided into two*/
+is "Hello".    /* like this. And comments may be within*/
+
+/* As you might have noticed
+   this is a comment. */
+
+
+
+/* =================== Input / Output =================== */
+
+text varName.
+newLine.
+read "prompt:" varName.  /* Prompt is printed and the cursor waits for an input next to it*/
+read varName.  /* is enough */
+newLine.
+write "The Values Are  ", a ,"  ",  b, "  ",  c.   /* Blanks are inserted between values */
+newLine.
+
+
+
+/* =================== Loops =================== */
+
+loop 5 times write "*".     /*Prints 5 asterix characters next to each other*/
+
 int i.
 i is 1.
 loop 10 times
 { write i.  newLine.
    i is i+1.
-}
+}   /* Will print numbers from 1 to 10 */
 
 
+int i.
+i is 1.
+loop 10 times
+{  loop i times write "*".
+   newLine.
+   i is i+1.
+}   /* Will print numbers from 1 to 10 */
+
+
+
+/* =================== Operations ======================= */
+
+text Str1 is " like home." , Str2.
+Str2 is "There is no place" + Str1.
+newLine.
+write Str2.  /* Would print "There is no place like home".*/
+newLine.
+
+text s is "Ohh ice ice baby!".
+text s2.
+s2 is s- "ice".
+newLine.
+write s2.  /* Prints "Ohh  ice baby!" */
+
+s2 is s2- " ice".
+newLine.
+write s2.  /* Prints "Ohh  baby!" */

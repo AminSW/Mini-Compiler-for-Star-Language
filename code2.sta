@@ -1,0 +1,15 @@
+int a,b,c.
+read "First:" a.
+newLine.
+read "Second:" b.
+newLine.
+c is a+b.
+c is c/2.
+write "Result:" c.
+text s is "Ohh ice ice baby!".
+text s2.
+s2 is s- "ice".
+text Str1 is "like home." , Str2.
+Str2 is "There is no place" + Str1.
+write Str1. 
+loop 5 times write "*".

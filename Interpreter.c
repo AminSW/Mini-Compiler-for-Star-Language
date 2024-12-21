@@ -653,8 +653,8 @@ void handleIO(const char* command, const char* line) {
 
 // handleLoop fonksiyonu
 void handleLoop(int loopCount, const char* loopBody) {
-    char loopBodyCopy[4096];
-    strcpy(loopBodyCopy, loopBody);
+    char loopBodyCopy[4096]; // Döngü gövdesinin kopyasını tutmak için buffer
+    strcpy(loopBodyCopy, loopBody); // Döngü gövdesini kopyala
     int incrementValue = 1; // Varsayılan artış miktarı
 
     // Döngü gövdesini tarayarak 'i' değişkeninin artış miktarını belirle
@@ -669,13 +669,13 @@ void handleLoop(int loopCount, const char* loopBody) {
                     if (nextToken != NULL && strcmp(nextToken, "Operator(+)") == 0) {
                         nextToken = strtok(NULL, " ");
                         if (nextToken != NULL && strncmp(nextToken, "IntConst(", 9) == 0) {
-                            sscanf(nextToken, "IntConst(%d)", &incrementValue);
+                            sscanf(nextToken, "IntConst(%d)", &incrementValue); // Artış miktarını belirle
                         }
                     }
                 }
             }
         }
-        token = strtok(NULL, " ");
+        token = strtok(NULL, " "); // Sonraki token'e geç
     }
 
     for (int i = 0; i < loopCount; i++) {
@@ -689,10 +689,10 @@ void handleLoop(int loopCount, const char* loopBody) {
         int innerLoopActive = 0;
         char innerLoopBody[4096] = {0};
         int innerLoopCount = 0;
-        int loopKeywordEncountered = 0; // iç döngü bayrağı
+        int loopKeywordEncountered = 0; // İç döngü bayrağı
 
         while (token != NULL) {
-            if (innerLoopActive) {
+            if (innerLoopActive) { // İç döngü aktifse
                 if (strcmp(token, "LeftCurlyBracket") == 0) {
                     inInnerLoop = 1;
                 } else if (strcmp(token, "RightCurlyBracket") == 0) {
@@ -706,12 +706,10 @@ void handleLoop(int loopCount, const char* loopBody) {
                 strcat(innerLoopBody, token);
                 strcat(innerLoopBody, " ");
             } else if (strncmp(token, "Keyword(loop)", 13) == 0) {
-
-                loopKeywordEncountered = 1; // iç döngü bayrağını etkinleştir
+                loopKeywordEncountered = 1; // İç döngü bayrağını etkinleştir
                 token = strtok(NULL, " ");
                 if (token != NULL && strncmp(token, "IntConst(", 9) == 0) {
-                    sscanf(token, "IntConst(%d)", &innerLoopCount);
-                    // Ardından Keyword(times) tokenini bekle
+                    sscanf(token, "IntConst(%d)", &innerLoopCount); // İç döngü sayısını belirle
                     token = strtok(NULL, " ");
                     if (token != NULL && strcmp(token, "Keyword(times)") == 0) {
                         innerLoopActive = 1;
@@ -720,10 +718,9 @@ void handleLoop(int loopCount, const char* loopBody) {
                     }
                 }
             } else if (strncmp(token, "Keyword(times)", 14) == 0) {
-                // İç döngü bayrağını kontrol et
                 if (loopKeywordEncountered) {
-                    loopKeywordEncountered = 0; // iç döngü bayrağını devre dışı bırak
-                    inStatement = 1; // iç döngü gövdesini toplamaya başla
+                    loopKeywordEncountered = 0; // İç döngü bayrağını devre dışı bırak
+                    inStatement = 1; // İç döngü gövdesini toplamaya başla
                 }
             } else if (strncmp(token, "LeftCurlyBracket", 16) == 0) {
                 inInnerLoop = 1;
@@ -735,23 +732,23 @@ void handleLoop(int loopCount, const char* loopBody) {
                 strcat(statement, token);
                 strcat(statement, " ");
                 if (strcmp(token, "EndOfLine") == 0) {
-                    execute(statement);
+                    execute(statement); // Satırı çalıştır
                     statement[0] = '\0';
                     inStatement = 0;
                 }
             }
 
-            token = strtok(NULL, " ");
+            token = strtok(NULL, " "); // Sonraki token'e geç
         }
 
         if (inStatement && !innerLoopActive) {
-            execute(statement);
+            execute(statement); // İç döngü aktif değilse kalan ifadeyi çalıştır
         }
 
         // Her iterasyon sonunda Identifier(i) değerini incrementValue kadar artır
         Variable *var = getVariable("i");
         if (var != NULL) {
-            var->intValue += incrementValue;
+            var->intValue += incrementValue; // 'i' değişkenini artır
         } else {
             printf("Error: Variable 'i' is not declared.\n");
         }
@@ -760,29 +757,27 @@ void handleLoop(int loopCount, const char* loopBody) {
 
 void handleIsStatement(const char* line) {
     char varName[32], expression[256];
-    sscanf(line, " Identifier(%31[^)]) Operator(is) %255[^\n]", varName, expression);
-    handleAssignment(varName, expression);
+    sscanf(line, " Identifier(%31[^)]) Operator(is) %255[^\n]", varName, expression); // İfade ve değişken ismini ayır
+    handleAssignment(varName, expression); // Atama işlemini gerçekleştir
 }
 
-
 void execute(const char* line) {
-
     if (strncmp(line, "Keyword(write)", 14) == 0) {
-        handleIO("Keyword(write)", line + 14);
+        handleIO("Keyword(write)", line + 14); // Yazma komutunu işleme
     } else if (strncmp(line, "Keyword(int)", 12) == 0) {
-        handleDeclaration(line);
+        handleDeclaration(line); // int değişken tanımlama
     } else if (strncmp(line, "Keyword(text)", 13) == 0) {
-        handleDeclaration(line);
+        handleDeclaration(line); // text değişken tanımlama
     } else if (strncmp(line, "Keyword(read)", 13) == 0) {
         char command[32], rest[256];
-        sscanf(line, "%31s %255[^\n]", command, rest);
-        handleIO(command, rest);
+        sscanf(line, "%31s %255[^\n]", command, rest); // read komutunu ve parametrelerini ayır
+        handleIO(command, rest); // okuma komutunu işleme
     } else if (strncmp(line, "Keyword(newLine)", 16) == 0) {
-        handleIO("Keyword(newLine)", NULL);
+        handleIO("Keyword(newLine)", NULL); // yeni satır komutunu işleme
     } else if (strncmp(line, "Keyword(loop)", 13) == 0) {
         int loopCount;
         const char* loopCountStart = strstr(line, "IntConst(") + strlen("IntConst(");
-        sscanf(loopCountStart, "%d", &loopCount);
+        sscanf(loopCountStart, "%d", &loopCount); // döngü sayısını belirle
 
         const char* loopBodyStart = strstr(line, "LeftCurlyBracket") + strlen("LeftCurlyBracket");
         const char* loopBodyEnd = strrchr(line, 'R'); // "RightCurlyBracket" yerine son 'R' karakterini bulma
@@ -791,40 +786,38 @@ void execute(const char* line) {
             strncpy(loopBody, loopBodyStart, loopBodyEnd - loopBodyStart - 1); // Sağ küme parantezden bir önceki karaktere kadar al
             loopBody[loopBodyEnd - loopBodyStart - 1] = '\0';
 
-            handleLoop(loopCount, loopBody);
+            handleLoop(loopCount, loopBody); // Döngüyü işleme
         } else {
-            printf("Error: Missing RightCurlyBracket in loop.\n");
+            printf("Error: Missing RightCurlyBracket in loop.\n"); // Hata mesajı
         }
     } else if (strncmp(line, "Keyword(is)", 11) == 0) {
-        handleIsStatement(line + 11);
+        handleIsStatement(line + 11); // Atama ifadesini işleme
     } else if (strstr(line, "Keyword(is)") != NULL) {
         char varName[32], expression[256];
-        sscanf(line, "Identifier(%31[^)]) Keyword(is) %255[^\n]", varName, expression);
-        handleAssignment(varName, expression);
+        sscanf(line, "Identifier(%31[^)]) Keyword(is) %255[^\n]", varName, expression); // Atama ifadesini ayır
+        handleAssignment(varName, expression); // Atama işlemini gerçekleştir
     } else {
-        printf("Error: Unrecognized keyword.\n");
+        printf("Error: Unrecognized keyword.\n"); // Hata mesajı
     }
 }
-
-
 
 void removeComments(char* line) {
     char* start = strstr(line, "/*");
     while (start != NULL) {
         char* end = strstr(start + 2, "*/");
         if (end != NULL) {
-            memmove(start, end + 2, strlen(end + 2) + 1);
+            memmove(start, end + 2, strlen(end + 2) + 1); // Yorumları kaldır
         } else {
-            *start = '\0';
+            *start = '\0'; // Tek satırlık yorumu kaldır
         }
-        start = strstr(line, "/*");
+        start = strstr(line, "/*"); // Yeni yorum başlangıcını bul
     }
 }
 
 int Interpreter() {
-    FILE* file = fopen("code.lex", "r");
+    FILE* file = fopen("code.lex", "r"); // code.lex dosyasını aç
     if (!file) {
-        printf("Error: Could not open file code.lex.\n");
+        printf("Error: Could not open file code.lex.\n"); // Dosya açma hatası mesajı
         return 1;
     }
 
@@ -834,81 +827,77 @@ int Interpreter() {
     char loopBody[4096] = {0};
 
     while (fgets(token, sizeof(token), file)) {
-        removeComments(token);
-        strtok(token, "\n");
-        if (strlen(token) == 0) continue;
+        removeComments(token); // Yorumları kaldır
+        strtok(token, "\n"); // Yeni satır karakterini kaldır
+        if (strlen(token) == 0) continue; // Boş satırları atla
 
         if (strncmp(token, "Keyword(loop)", 13) == 0) {
-            inLoop = 1;
+            inLoop = 1; // Döngü başlangıcını işaretle
             strcat(line, token);
         } else if (inLoop) {
             strcat(loopBody, " ");
             strcat(loopBody, token);
             if (strstr(token, "RightCurlyBracket") != NULL) {
-                inLoop = 0;
+                inLoop = 0; // Döngü sonunu işaretle
                 strcat(line, " ");
                 strcat(line, loopBody);
-                execute(line);
+                execute(line); // Döngüyü çalıştır
                 line[0] = '\0';
                 loopBody[0] = '\0';
             }
         } else {
             if (strcmp(token, "EndOfLine") == 0) {
                 if (strlen(line) > 0) {
-                    execute(line);
+                    execute(line); // Satırı çalıştır
                     line[0] = '\0';
                 }
             } else {
                 if (strlen(line) > 0) strcat(line, " ");
-                strcat(line, token);
+                strcat(line, token); // Tokeni satıra ekle
             }
         }
     }
 
     if (strlen(line) > 0) {
-        execute(line);
+        execute(line); // Kalan satırı çalıştır
     }
 
-    fclose(file);
+    fclose(file); // Dosyayı kapat
     return 0;
 }
 
-
 int main() {
-    /* Open input and output files */
-    FILE *inputFile = fopen("code.sta", "r");    // Open input file
-    FILE *outputFile = fopen("code.lex", "w");   // Open output file
+    FILE *inputFile = fopen("code.sta", "r"); // Giriş dosyasını aç
+    FILE *outputFile = fopen("code.lex", "w"); // Çıkış dosyasını aç
 
-    if (inputFile == NULL || outputFile == NULL) {   // File opening error check
-        printf("Error opening files.\n");     // Error message
-        return -1;                            // Exit with error code
+    if (inputFile == NULL || outputFile == NULL) { // Dosya açma hatası kontrolü
+        printf("Error opening files.\n"); // Hata mesajı
+        return -1; // Hata kodu ile çık
     }
 
-    /* Read tokens and write to output file */
     Token token;
-    int endOfLineCount = 0;   // End of line counter
+    int endOfLineCount = 0; // Satır sonu sayacı
     do {
-        token = getNextToken(inputFile);   // Get the next token
-        if (token.type != END_OF_LINE) {   // If the token is not an end of line
-            if (endOfLineCount > 0) {      // If the previous token was an end of line
-                printToken((Token){END_OF_LINE, ""});   // Write the end of line token
+        token = getNextToken(inputFile); // Bir sonraki tokeni al
+        if (token.type != END_OF_LINE) { // Token satır sonu değilse
+            if (endOfLineCount > 0) { // Önceki token satır sonuysa
+                printToken((Token){END_OF_LINE, ""}); // Satır sonu tokenini yaz
             }
-            printToken(token);              // Write the token
-            endOfLineCount = 0;            // Reset the end of line counter
+            printToken(token); // Tokeni yaz
+            endOfLineCount = 0; // Satır sonu sayacını sıfırla
         } else {
-            endOfLineCount++;              // If the token is an end of line, increment the counter
+            endOfLineCount++; // Token satır sonuysa sayaç artır
         }
-    } while (!feof(inputFile));            // Continue until the end of the file
+    } while (!feof(inputFile)); // Dosya sonuna kadar devam et
 
-    if (endOfLineCount > 0) {              // If there is an end of line at the end of the file
-        printToken((Token){END_OF_LINE, ""});   // Write the end of line token
+    if (endOfLineCount > 0) { // Dosyanın sonunda satır sonu varsa
+        printToken((Token){END_OF_LINE, ""}); // Satır sonu tokenini yaz
     }
 
-    /* Close files */
-    fclose(inputFile);                     // Close the input file
-    fclose(outputFile);                    // Close the output file
+    fclose(inputFile); // Giriş dosyasını kapat
+    fclose(outputFile); // Çıkış dosyasını kapat
 
-    Interpreter();
+    Interpreter(); // Yorumlayıcıyı çalıştır
 
-    return 0;                              // Exit successfully
+    return 0; // Başarıyla çık
 }
